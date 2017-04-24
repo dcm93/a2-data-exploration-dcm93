@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <!--D3-->
+
+    <!--Bootstrap-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!--jQuery-->
+
+    <!--CSS-->
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <!--Script-->
+     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+     <script type="text/javascript" src="js/main.js"></script>
+    <title>Craft Beers in the U.S</title>
+</head>
+
+<body>
+    <header>
+        <div class="jumbotron">
+            <div class="container-left">
+                <h1 class="display-3">Craft Beers in the United States</h1>
+                <p class="lead">Explore the most popular beer styles for each major region in the United States and learn more about their
+                    hoppiness and alcoholic content.
+                </p>
+            </div>
+        </div>
+    </header>
+    <section name="buttons">
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="form-group">
+                    <label for="style">Select Style:</label>
+                    <select class="form-control" name="style" id="style">
+                        <option>Pale Ale</option>
+                        <option>Dark Lager</option>
+                        <option>Brown Ale</option>
+                        <option>India Pale Ale</option>
+                        <option>Wheat Beer</option>
+                        <option>Strong Ale</option>
+                        <option>Belgian Style</option>
+                        <option>Hybrid Beer</option>
+                        <option>Porter</option>
+                        <option>Stout</option>
+                        <option>Bock</option>
+                        <option>Scottish-Style Ale</option>
+                        <option>Wild/Sour Beer</option>            
+                        <option>Pilseners and Pale Lagers</option>    
+                        <option>Specialty Beer</option>                
+                 </select>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="form-group">
+                    <label for="abv">Select Alcohol By Volume Content (ABV):</label>
+                    <select class="form-control" name="abv" id="abv">
+                        <option>Not Detectable: 0 - 4.5%</option>
+                        <option>Mild: 4.6 - 6.0%</option>
+                        <option>Noticeable: 6.1 - 12.5%</option>
+                        <option>Harsh: 12.6%</option>
+                 </select>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="form-group">
+                    <label for="ibu">Select International Bitterness Units:</label>
+                    <select class="form-control" name="ibu" id="ibu">
+                        <option>Not Hoppy: 0 - 25</option>
+                        <option>Moderately Hoppy: 26 - 50</option>
+                        <option>Very Hoppy: 51 - 75</option>
+                        <option>Extremely Hoppy: 75> </option>            
+                 </select>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section>
+        <div class="container" id="viz">
+        </div>
+    </section>
+    <section>
+    </section>
+    <!--js Scripts-->
+  
+</body>
+</html>
