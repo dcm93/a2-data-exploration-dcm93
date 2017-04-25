@@ -1,13 +1,30 @@
 $(function () {
     //Bitter Bitch,0.061,60,1979,American Pale Ale (APA),177,12,18th Street Brewery,Gary,IN,midwest
-
+    $("#rationale").hide();
+    $('#show').on('click', function () {
+        $("#rationale").toggle();
+    });
+    $('#hide').on('click', function () {
+        $('#rationale').toggle();
+        var offset = $("header").offset();
+        $("html,body").animate({
+            scrollTop: offset.top,
+            scrollLeft: offset.left
+        });
+    });
     d3.csv('data/merged_beers3.csv', function (error, data) {
         var style = 'Pale Ale',
             abv = [0, 0.070],
             ibu = [0, 65],
             regions = ['West', 'Midwest', 'South', 'Northeast'];
 
-            var root;
+        var focus;
+        var nodes;
+        var view;
+        var svg;
+        var g;
+        var margin1;
+        var colorScale;
 
         var margin = {
             top: 50,
@@ -82,37 +99,46 @@ $(function () {
             root.sum(function (d) {
                 return +d['abv'];
             });
-            console.log(root);
+            //console.log(root);
+
+            focus = root;
+            nodes = pack(root).descendants();
         }
 
-        filterData();
-        var colorScale = d3.scaleOrdinal().domain(regions).range(['#FF8000', '#32CD32', '#FFFF00', '#0080FF']);
+        function setUpLayout() {
+            if (!svg) {
+                svg = d3.select("#viz")
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+            }
 
 
+            margin1 = 20;
+            if (!g) {
+                g = svg.append('g')
+                    .attr('transform', 'translate(' + (diameter / 2) + "," + (diameter / 2) + ')');
+            }
 
-            //console.log(pack(root));
-
-            var svg = d3.select("#viz")
-                .append('svg')
-                .attr('width', width)
-                .attr('height', height);
-
-            var margin1 = 20;
-
-            var g = svg.append('g')
-                .attr('transform', 'translate(' + (diameter / 2) + "," + (diameter / 2) + ')');
             //pack(root);
             //what is format though?
-            var format = d3.format(",d");
+            format = d3.format(",d");
+
+
+
+
+            colorScale = d3.scaleOrdinal().domain(regions).range(['#FF8000', '#32CD32', '#FFFF00', '#0080FF']);
+        }
+
+        //console.log(pack(root));
+        function draw() {
 
             //var node = g.selectAll('.node')
             //.data(root.leaves());
             // console.log(pack(root).leaves());
             //node == circle?
 
-            var focus = root,
-                nodes = pack(root).descendants(),
-                view;
+
             //console.log(root);
 
             var circle = g.selectAll('circle')
@@ -120,27 +146,60 @@ $(function () {
                 .enter()
                 .append('circle')
                 .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-                .attr('fill', function (d) { return colorScale(d.data.region); })
+                .style('fill', function (d) {
+                    if (d.parent !== root) {
+                        //console.log(d.data.region)
+                        //console.log(d.data);
+                        ; return colorScale(d.data.region);
+                    } else {
+                        return '#F5F5F5';
+                    }
+                })
                 .on('click', function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+
+            circle.exit(function (d) {
+                console.log(d);
+            }).remove(function (d) {
+                console.log(d);
+            });
             //deja esta linea solo hasta data, despues do text.enter()
             var text = g.selectAll("text")
-                .data(nodes)
-                .enter()
+                .data(nodes);
+
+            text.enter()
                 .append("text")
+                .merge(text)
                 .attr("class", "label")
-                .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
+                .style('fill', '#000000')
                 .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
-                //show this text only on hover!
-                .text(function (d) {
+                .each(function (d) {
                     var val = "";
-                    if (d.parent) {
-                        val = d.data.name_x + "\n" + "ABV: " + d.data.abv + "\n" + "IBU: " + d.data.ibu;
+                    if (d.parent !== root) {
+                        console.log(d.y);
+                        var element = d3.select(this);
+                        if (d.data.name_x != undefined && d.data.name_x.length > d.r / 1.8) {
+                            element.append('tspan').text(d.data.name_x.slice(0, d.data.name_x.indexOf(' '))).attr('dy', -20).append('tspan').text(d.data.name_x.slice(d.data.name_x.indexOf(' ') + 1)).attr('dy', '1.05em').attr('x', 7);
+                        } else {
+                            element.append('tspan').text(d.data.name_x)
+                        }
+                        element.append('tspan').text("ABV: " + d.data.abv).attr('dy', '1.05em').attr('x', 9)
+                            .append('tspan').text("IBU: " + d.data.ibu).attr('dy', '1.05em').attr('x', 2);
+
                     } else {
-                        val = d.key;
+                        d3.select(this).text(d.data.key.charAt(0).toUpperCase() + d.data.key.slice(1));
                     }
-                    return val;
+                })
+
+                .style('font-size', function (d) {
+                    if (d.parent !== root) {
+                        return 15 + "px";
+                    } else {
+                        return 50 + "px";
+                    }
                 });
 
+            text.exit().remove();
+            //.exit().remove();
             var node = g.selectAll('circle,text');
 
             //this.text(function(d){
@@ -179,141 +238,17 @@ $(function () {
                 })
                 circle.attr('r', function (d) { return d.r * k; });
             }
-
-    
-        
-
-           
-        /*  .data(pack(root).leaves())
-          .enter()
-          .append('g')
-          .attr('class', function (d) { return d.children ? "node" : "leaf node"; })
-          .attr('transform', function (d) {
-              return 'translate(' + (+d.x) + ', ' + (+d.y) + ")";
-          });
-
-      node.append('title')
-          .text(function (d) { return d.data.name_x + "\n" + d.data.abv; });//format(+d.data.abv);});
-
-      node.append('circle')
-          .attr('r', function (d) { return d.r; })
-          .attr('fill', function (d) {
-              return colorScale(d.data.region);
-          })
-          .on({
-          "mouseover": function (d) {
-              d3.select(this).style("cursor", "pointer"); /*semicolon here*/
-        /* },
-         "mouseout": function (d) {
-             d3.select(this).style("cursor", "default"); /*and there*/
-        //}
-        //});
-
-        //node.filter(function (d) { return !d.children; })
-        //  .append("text")
-        // .attr('dy', '0.3em')
-        //.text(function (d) { return d.data.name; });
-
-
-        /*var results = d3.nest()
-            .key(function(d){
-                return d.region
-            })
-             .rollup(function (v) {
-                return {
-                    count: v.length,
-                    ibu: d3.mean(v, function (d) { return +d.ibu;}),
-                    abv: d3.mean(v, function (d) { return +d.abv; })
-                };})
-            .entries(filtered);
-           
-        console.log(results);
-        var svg = d3.select("#viz")
-            .append('svg')
-            .attr("width", width)
-            .attr("height", height);
-
-        var g = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ")")
-            .attr('width', drawWidth)
-            .attr('height', drawHeight);
-
-        var xAxisContainer = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ", " + (drawHeight + margin.top) + ")")
-            .attr('class', 'axis');
-
-        var yAxisContainer = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ", " + margin.top + ")")
-            .attr('class', 'axis');
-
-        var xAxisLabel = svg.append('text')
-            .attr('transform', 'translate(' + (margin.left + drawWidth / 2) + ',' + (drawHeight + margin.top + 50) + ')')
-            .attr('class', 'title');
-
-        var yAxisLabel = svg.append('text')
-            .attr('transform', 'translate(' + (margin.left - 55) + ',' + ((margin.top + drawHeight / 2) + 50) + ') rotate(-90)')
-            .attr('class', 'title');
-
-        var xScale = d3.scaleBand().range([0, drawWidth]).domain(regions);
-
-        console.log(d3.values(results));
-        var yMax = d3.max(results.values, function(array){
-            console.log(array);
-            return d3.max(array.count);
-        })
-        var yMax = d3.max(results, function (array) { return d3.max(array.values); });
-
-        var yScale = d3.scaleLinear().range([drawHeight, 0]).domain([0, yMax.abv]);
-
-        var generateXAxis = d3.axisBottom(xScale);
-        var generateYAxis = d3.axisLeft(yScale).tickFormat(d3.format('.2s'));
-        xAxisContainer.call(generateXAxis);
-        yAxisContainer.call(generateYAxis);
-        xAxisLabel.text('Regions in the U.S');
-        yAxisLabel.text('Percentage of ABV');
-
-
-        var bars = d3.selectAll('rect').data(results, function(d){
-            return d.key;
-        })
-
-        bars.enter().append('rect')
-        .attr('y', function(d){
-            return drawHeight;
-        })
-        .attr('x', function(d){
-            return xScale(d.values.region);
-        })
-        .attr('height', 0)
-        .attr('class', 'bar')
-        .merge(bars);
-        //.attr('y')*/
-        //var defaultData = filterData();
-        //draw(defaultData);
-
-
-         function updateVis(){
-            filterData();
-            var focus = root,
-                nodes = pack(root).descendants(),
-                view;
-            console.log(nodes);
-            text.attr('x', function(d){return d.x})
-            .attr('y', function(d){return d.y})
-            .text(function(d){return d.data.name_x});
-  // EXIT
-  // Remove old elements as needed.
-            text.exit().remove();
-
-            circle.transition().duration(3000)
-            .attr('cx', function(d){return d.x})
-            .attr('cy', function(d){return d.y})
-            .attr('r', function(d){
-                return d.r;
-            })
-
-            circle.exit().remove();
         }
+        filterData();
+        setUpLayout();
+        draw();
+        function updateVis() {
+            filterData();
+            //setUpLayout();
+            //console.log(nodes);
+            draw();
+        }
+        //filterData();
 
         $('select').change(function () {
             var selType = $(this).attr('name');
@@ -328,24 +263,5 @@ $(function () {
             updateVis();
             console.log(style + ", " + abv + ", " + ibu);
         });
-
-
-        /* $('#abv').change(function () {
-             var option = $(this).find('option:selected');
-             abv = option.text();
-             console.log(style + ", " + abv + ", " + ibu);
-         });
- 
-         $('#ibu').change(function () {
-             var option = $(this).find('option:selected');
-             ibu = option.text();
-             console.log(style + ", " + abv + ", " + ibu);
-         });
- */
-        //console.log(style + ", " + abv + ", " + ibu);
-
-
     });
-
-
 });

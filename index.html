@@ -15,10 +15,11 @@
     <!--CSS-->
     <link rel="stylesheet" type="text/css" href="css/style.css" />
     <!--Script-->
-     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-     <script type="text/javascript" src="js/main.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
     <title>Craft Beers in the U.S</title>
 </head>
 
@@ -31,9 +32,80 @@
                     hoppiness and alcoholic content.
                 </p>
             </div>
+            <div class="container-left">
+                <button id="show" type="button" class="btn btn-primary">Design Rationale</button>
+            </div>
         </div>
     </header>
-    <section name="buttons">
+    <section>
+        <div class="container" id="rationale">
+            <p>
+                The data presented in this tool describes U.S craft beers, their styles, their alcoholic by volume rate (ABV), international
+                bitterness unit rate (IBU) and their brewery of origin. Given that each beer has information on itself and
+                on the brewery that produces it, I explored layouts that allow me to provide information, on the beer itself
+                and on its origin, while preventing information overload and cluttering.
+            </p>
+            <p>
+                My first candidates included a bar chart and a pie chart binned by U.S regions and a U.S map with geolocated bubbles for
+                each beer matching a selection criteria. However, these options were soon replaced by a zoomable circle packing
+                layout.
+            </p>
+            <p> I proceeded with this choice because it allowed me to present several layers of information in the same graph,
+                something not afforded by more traditional layouts such as the bar and pie charts. Additionally, this layout
+                did not force me to reduce my dataset to a few summarizing operations to fit a summarizing chart, as was
+                again the case with the pie and bar chart. Furthermore, unlike the U.S Bubble map layout, the circle packing
+                layout did not depend on geographical location to provide a space for each observation, which prevents cluttering
+                and collision. Finally, the circle packing layout allowed me to organize beers by their region of origin,
+                without recurring to a map.
+            </p>
+            <br>
+            <p>
+                My data tool counts with 4 filters: Zooming, Style, ABV and IBU. It is important to note that my tool uses a combination
+                of Style, ABV and IBU to present results for each region. Therefore, to obtain better results, users must
+                select an option for each of said filters. Functionality for each filter is explained below.
+            </p>
+            <ul>
+                <li>Zooming: users are first presented with a grouping of beers by each region, represented by a larger circle
+                    populated by smaller circles of the same color. Upon clicking on any grouping, the user is presented
+                    with each bubble containing the beer’s name, its brewery of origin, its ABV and IBU.
+                </li>
+                <li>
+                    Style Filter: users can choose from a list of beer styles such as Pale Ale, Brown Ale, Pilsner, etc. With this filter, they
+                    can explore which beer style is most popular in each U.S region.
+                </li>
+                <li>
+                    Alcohol by Volume Rate Filter: users can filter all U.S beers by their Alcohol by Volume rate, represented by 4 categories:
+                    Not Detectable, Mild, Noticeable and Harsh. It is important to note that, despite choosing a particular
+                    ABV, bubble size and proportion will always be given by ABV. This choice was made due to the fact that
+                    ABV is a more objective measure than IBU.
+                </li>
+                <li>
+                    International Bitterness Units Rate Filter: users can filter all U.S beers by their International Bitterness Units Rate.
+                    It is important to note that IBU is less objective than ABV given than bitterness is relative for each
+                    person and their particular taste. So, since bitterness is most closely related to the amount of hops
+                    present in a beer, the user can choose “Not Hoppy”, “Moderately Hoppy”, “Very Hoppy” and “Extremely Hoppy”
+                    as levels of “bitterness.
+                </li>
+            </ul>
+            <br>
+            <p> Some of the insights found are:
+            </p>
+            <ul>
+                <li>The most popular beer style in every U.S region is Pale Ale, followed by Brown Ale and Porter.</li>
+                <li>"Extremely Hoppy" beers, or those that would be considered to be extremely bitter are very rare in the U.S and the few in existence are
+                    produced in the West region</li>
+                <li>Generally, the West region dominates in number of breweries and number of products produced. This region is followed by the Northeast.</li>
+                <li>The most popular Alcohol by Volume rate in the U.S is "Mild", which encompasses rates between 4.6 and 6.0 %.
+                </li>
+                <li>The most popular level of bitterness, as indicated by IBU, is Moderately Hoppy, with rates between 26 and 50 hop acids in parts-per-million.
+                    </li>
+            </ul>
+            <div class="pull-right">
+                <button id="hide" type="button" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </section>
+    <section name="buttons" id="select">
         <div class="row">
             <div class="col-lg-4">
                 <div class="form-group">
@@ -86,8 +158,10 @@
         </div>
     </section>
     <section>
+
     </section>
     <!--js Scripts-->
-  
+
 </body>
+
 </html>
