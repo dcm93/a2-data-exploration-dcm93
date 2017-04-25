@@ -5,9 +5,9 @@ $(function () {
         var style = 'Pale Ale',
             abv = [0, 0.070],
             ibu = [0, 65],
-            regions = ['West', 'Midwest', 'South', 'Northeast'];
+            regions = ['west', 'midwest', 'south', 'northeast'];
 
-            var root;
+
 
         var margin = {
             top: 50,
@@ -20,6 +20,17 @@ $(function () {
             diameter = width,
             drawWidth = width - margin.left - margin.right,
             drawHeight = height - margin.top - margin.bottom;
+
+        var svg = d3.select("#viz")
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
+
+
+        var g = svg.append('g')
+            // diameter/2
+            .attr('transform', 'translate(' + (diameter / 2) + "," + (diameter / 2) + ')');
+
 
         function assignRangeAbv(tag) {
             if (tag.includes('Not Detectable')) {
@@ -59,6 +70,7 @@ $(function () {
             .padding(2);
 
         function filterData() {
+            // console.log(data);
             var filtered = data.filter(function (beer) {
                 if (+beer.abv >= abv[0] && +beer.abv <= abv[1] && +beer.ibu >= ibu[0] && +beer.ibu <= ibu[1] && beer.style.includes(style)) {
                     return beer;
@@ -70,7 +82,7 @@ $(function () {
                 })
                 .entries(filtered);
 
-            root = d3.hierarchy({
+            var root = d3.hierarchy({
                 values: nestedData
             }, function (d) {
                 return d.values;
@@ -79,28 +91,25 @@ $(function () {
                     return b.value - a.value;
                 });
 
-            root.sum(function (d) {
+            return root;
+            //console.log(root);
+        }
+        var colorScale = d3.scaleOrdinal().domain(regions).range(d3.schemeCategory10);
+
+        function draw(root) {
+            var localRoot = root;
+            localRoot.sum(function (d) {
                 return +d['abv'];
             });
-            console.log(root);
-        }
 
-        filterData();
-        var colorScale = d3.scaleOrdinal().domain(regions).range(['#FF8000', '#32CD32', '#FFFF00', '#0080FF']);
-
-
-
+            var focus = localRoot,
+                nodes = pack(localRoot).descendants(),
+                view;
             //console.log(pack(root));
 
-            var svg = d3.select("#viz")
-                .append('svg')
-                .attr('width', width)
-                .attr('height', height);
 
             var margin1 = 20;
 
-            var g = svg.append('g')
-                .attr('transform', 'translate(' + (diameter / 2) + "," + (diameter / 2) + ')');
             //pack(root);
             //what is format though?
             var format = d3.format(",d");
@@ -110,36 +119,91 @@ $(function () {
             // console.log(pack(root).leaves());
             //node == circle?
 
-            var focus = root,
-                nodes = pack(root).descendants(),
-                view;
-            //console.log(root);
 
+            //console.log(root);
+           // zoomTo([+localRoot.x, +localRoot.y, +localRoot.r * 2 + margin1]);
+
+            var z = diameter / localRoot.r;
+
+            var k = diameter / localRoot.r;
+                //console.log(v[2]);
+            view = [+localRoot.x, +localRoot.y, +localRoot.r * 2 + margin1];
+            var v = view;
             var circle = g.selectAll('circle')
-                .data(nodes)
-                .enter()
+                .data(nodes);
+            circle.enter()
                 .append('circle')
+                .attr('transform', function(d){
+                    return "translate(" + d.x + "," + d.y + ")";
+                })
+                .attr('r', function(d){
+                    return d.r;
+                })
+                .on('click', function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); })
+                .merge(circle)
+                .style('fill', function (d) {
+                    if (d.parent !== localRoot) {
+                        //console.log(d.data.region)
+                        //console.log(d.data);
+                        ; return colorScale(d.data.region);
+                    } else {
+                        return '#F5F5F5';
+                    }
+                })
                 .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-                .attr('fill', function (d) { return colorScale(d.data.region); })
-                .on('click', function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+                //.transition()
+                   // .duration(1000)
+                .attr('transform', function(d){
+                    // zoomTo([+localRoot.x, +localRoot.y, +localRoot.r * 2 + margin1]);
+                    return "translate(" + (+d.x - localRoot.x)  + "," + (+d.y - localRoot.y) + ")"
+                    return 'translate(' + d.x + ',' + d.y + ")";
+                })
+                .attr('r', function(d){
+                    return d.r ;
+                });
+                
+
+                circle.exit()
+                .transition().duration(1000)
+                .remove();
+
             //deja esta linea solo hasta data, despues do text.enter()
             var text = g.selectAll("text")
-                .data(nodes)
-                .enter()
+                .data(nodes);
+
+            text.enter()
                 .append("text")
+                .merge(text)
                 .attr("class", "label")
-                .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-                .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
+                .style('fill', '#808080')
+                .style('stroke', 'none')
+                .attr('transform', function (d) {
+                    if (d.parent === localRoot && d.data.key == "midwest") {
+                        //console.log(d.x +"," + d.y); 
+                    }
+                    return 'translate(' + (d.x) + ", " + (d.y) + ")";
+                })
+                //.transition().duration(1500)
+                .style("fill-opacity", function (d) { return d.parent === localRoot ? 1 : 0; })
+                .style("display", function (d) { return d.parent === localRoot ? "inline" : "none"; })
                 //show this text only on hover!
                 .text(function (d) {
                     var val = "";
-                    if (d.parent) {
+                    if (d.parent !== root) {
                         val = d.data.name_x + "\n" + "ABV: " + d.data.abv + "\n" + "IBU: " + d.data.ibu;
                     } else {
-                        val = d.key;
+                        val = d.data.key.charAt(0).toUpperCase() + d.data.key.slice(1);
                     }
                     return val;
-                });
+                })
+                .style('font-size', function (d) {
+                    if (d.parent !== localRoot) {
+                        return 15 + "px";
+                    } else {
+                        return 50 + "px";
+                    }
+                })
+                .exit().transition().duration(1000).remove();
 
             var node = g.selectAll('circle,text');
 
@@ -147,17 +211,20 @@ $(function () {
             //  return this.data.name_x;
             //})
             svg.style('background', '#E5FFCC')
-                .on('click', function () { zoom(root); });
-            //console.log(root);
+                .on('click', function () { zoom(localRoot); });
+            // console.log(localRoot);
 
-            zoomTo([+root.x, +root.y, +root.r * 2 + margin1]);
+            console.log(localRoot.x + ", " + localRoot.y + ", " + localRoot.r);
+            zoomTo([+localRoot.x, +localRoot.y, +localRoot.r]);
 
             function zoom(d) {
                 var focus0 = focus;
                 focus = d;
+                console.log(d);
                 var transition = d3.transition()
                     .duration(d3.event.altKey ? 7500 : 750)
                     .tween("zoom", function (d) {
+                        //console.log(focus.x + "," + focus.y + "," + focus.r);
                         var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin1]);
                         return function (t) {
                             zoomTo(i(t));
@@ -172,149 +239,143 @@ $(function () {
             }
 
             function zoomTo(v) {
-                var k = diameter / v[2];
-                view = v;
+               
                 node.attr("transform", function (d) {
+                    //console.log(v[0] + "," + v[1]);
                     return "translate(" + (+d.x - v[0]) * k + "," + (+d.y - v[1]) * k + ")"
+                    //return "translate(" + (+d.x) * k + "," + (+d.y) * k + ")"
                 })
                 circle.attr('r', function (d) { return d.r * k; });
             }
 
+
+
+
+
+            /*  .data(pack(root).leaves())
+              .enter()
+              .append('g')
+              .attr('class', function (d) { return d.children ? "node" : "leaf node"; })
+              .attr('transform', function (d) {
+                  return 'translate(' + (+d.x) + ', ' + (+d.y) + ")";
+              });
     
-        
+          node.append('title')
+              .text(function (d) { return d.data.name_x + "\n" + d.data.abv; });//format(+d.data.abv);});
+    
+          node.append('circle')
+              .attr('r', function (d) { return d.r; })
+              .attr('fill', function (d) {
+                  return colorScale(d.data.region);
+              })
+              .on({
+              "mouseover": function (d) {
+                  d3.select(this).style("cursor", "pointer"); /*semicolon here*/
+            /* },
+             "mouseout": function (d) {
+                 d3.select(this).style("cursor", "default"); /*and there*/
+            //}
+            //});
 
-           
-        /*  .data(pack(root).leaves())
-          .enter()
-          .append('g')
-          .attr('class', function (d) { return d.children ? "node" : "leaf node"; })
-          .attr('transform', function (d) {
-              return 'translate(' + (+d.x) + ', ' + (+d.y) + ")";
-          });
-
-      node.append('title')
-          .text(function (d) { return d.data.name_x + "\n" + d.data.abv; });//format(+d.data.abv);});
-
-      node.append('circle')
-          .attr('r', function (d) { return d.r; })
-          .attr('fill', function (d) {
-              return colorScale(d.data.region);
-          })
-          .on({
-          "mouseover": function (d) {
-              d3.select(this).style("cursor", "pointer"); /*semicolon here*/
-        /* },
-         "mouseout": function (d) {
-             d3.select(this).style("cursor", "default"); /*and there*/
-        //}
-        //});
-
-        //node.filter(function (d) { return !d.children; })
-        //  .append("text")
-        // .attr('dy', '0.3em')
-        //.text(function (d) { return d.data.name; });
+            //node.filter(function (d) { return !d.children; })
+            //  .append("text")
+            // .attr('dy', '0.3em')
+            //.text(function (d) { return d.data.name; });
 
 
-        /*var results = d3.nest()
-            .key(function(d){
-                return d.region
+            /*var results = d3.nest()
+                .key(function(d){
+                    return d.region
+                })
+                 .rollup(function (v) {
+                    return {
+                        count: v.length,
+                        ibu: d3.mean(v, function (d) { return +d.ibu;}),
+                        abv: d3.mean(v, function (d) { return +d.abv; })
+                    };})
+                .entries(filtered);
+               
+            console.log(results);
+            var svg = d3.select("#viz")
+                .append('svg')
+                .attr("width", width)
+                .attr("height", height);
+    
+            var g = svg.append('g')
+                .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ")")
+                .attr('width', drawWidth)
+                .attr('height', drawHeight);
+    
+            var xAxisContainer = svg.append('g')
+                .attr('transform', 'translate(' + margin.left + ", " + (drawHeight + margin.top) + ")")
+                .attr('class', 'axis');
+    
+            var yAxisContainer = svg.append('g')
+                .attr('transform', 'translate(' + margin.left + ", " + margin.top + ")")
+                .attr('class', 'axis');
+    
+            var xAxisLabel = svg.append('text')
+                .attr('transform', 'translate(' + (margin.left + drawWidth / 2) + ',' + (drawHeight + margin.top + 50) + ')')
+                .attr('class', 'title');
+    
+            var yAxisLabel = svg.append('text')
+                .attr('transform', 'translate(' + (margin.left - 55) + ',' + ((margin.top + drawHeight / 2) + 50) + ') rotate(-90)')
+                .attr('class', 'title');
+    
+            var xScale = d3.scaleBand().range([0, drawWidth]).domain(regions);
+    
+            console.log(d3.values(results));
+            var yMax = d3.max(results.values, function(array){
+                console.log(array);
+                return d3.max(array.count);
             })
-             .rollup(function (v) {
-                return {
-                    count: v.length,
-                    ibu: d3.mean(v, function (d) { return +d.ibu;}),
-                    abv: d3.mean(v, function (d) { return +d.abv; })
-                };})
-            .entries(filtered);
-           
-        console.log(results);
-        var svg = d3.select("#viz")
-            .append('svg')
-            .attr("width", width)
-            .attr("height", height);
-
-        var g = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ")")
-            .attr('width', drawWidth)
-            .attr('height', drawHeight);
-
-        var xAxisContainer = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ", " + (drawHeight + margin.top) + ")")
-            .attr('class', 'axis');
-
-        var yAxisContainer = svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ", " + margin.top + ")")
-            .attr('class', 'axis');
-
-        var xAxisLabel = svg.append('text')
-            .attr('transform', 'translate(' + (margin.left + drawWidth / 2) + ',' + (drawHeight + margin.top + 50) + ')')
-            .attr('class', 'title');
-
-        var yAxisLabel = svg.append('text')
-            .attr('transform', 'translate(' + (margin.left - 55) + ',' + ((margin.top + drawHeight / 2) + 50) + ') rotate(-90)')
-            .attr('class', 'title');
-
-        var xScale = d3.scaleBand().range([0, drawWidth]).domain(regions);
-
-        console.log(d3.values(results));
-        var yMax = d3.max(results.values, function(array){
-            console.log(array);
-            return d3.max(array.count);
-        })
-        var yMax = d3.max(results, function (array) { return d3.max(array.values); });
-
-        var yScale = d3.scaleLinear().range([drawHeight, 0]).domain([0, yMax.abv]);
-
-        var generateXAxis = d3.axisBottom(xScale);
-        var generateYAxis = d3.axisLeft(yScale).tickFormat(d3.format('.2s'));
-        xAxisContainer.call(generateXAxis);
-        yAxisContainer.call(generateYAxis);
-        xAxisLabel.text('Regions in the U.S');
-        yAxisLabel.text('Percentage of ABV');
-
-
-        var bars = d3.selectAll('rect').data(results, function(d){
-            return d.key;
-        })
-
-        bars.enter().append('rect')
-        .attr('y', function(d){
-            return drawHeight;
-        })
-        .attr('x', function(d){
-            return xScale(d.values.region);
-        })
-        .attr('height', 0)
-        .attr('class', 'bar')
-        .merge(bars);
-        //.attr('y')*/
-        //var defaultData = filterData();
-        //draw(defaultData);
-
-
-         function updateVis(){
-            filterData();
-            var focus = root,
-                nodes = pack(root).descendants(),
-                view;
-            console.log(nodes);
-            text.attr('x', function(d){return d.x})
-            .attr('y', function(d){return d.y})
-            .text(function(d){return d.data.name_x});
-  // EXIT
-  // Remove old elements as needed.
-            text.exit().remove();
-
-            circle.transition().duration(3000)
-            .attr('cx', function(d){return d.x})
-            .attr('cy', function(d){return d.y})
-            .attr('r', function(d){
-                return d.r;
+            var yMax = d3.max(results, function (array) { return d3.max(array.values); });
+    
+            var yScale = d3.scaleLinear().range([drawHeight, 0]).domain([0, yMax.abv]);
+    
+            var generateXAxis = d3.axisBottom(xScale);
+            var generateYAxis = d3.axisLeft(yScale).tickFormat(d3.format('.2s'));
+            xAxisContainer.call(generateXAxis);
+            yAxisContainer.call(generateYAxis);
+            xAxisLabel.text('Regions in the U.S');
+            yAxisLabel.text('Percentage of ABV');
+    
+    
+            var bars = d3.selectAll('rect').data(results, function(d){
+                return d.key;
             })
-
-            circle.exit().remove();
+    
+            bars.enter().append('rect')
+            .attr('y', function(d){
+                return drawHeight;
+            })
+            .attr('x', function(d){
+                return xScale(d.values.region);
+            })
+            .attr('height', 0)
+            .attr('class', 'bar')
+            .merge(bars);
+            //.attr('y')*/
+            //var defaultData = filterData();
+            //draw(defaultData);
         }
 
+        function updateVis() {
+
+            var root1 = filterData();
+            // d3.select('g').transition().duration(1000).remove();
+            // if(== 0){
+            //    d3.select('#viz').append('svg').attr('fill', 'blue').append('text').text("NO DATA AVAILABLE!");
+            //} else {
+            draw(root1);
+            //}
+            //d3.selectAll('.node').exit().transition().duration(1000).remove();
+            //d3.selectAll('.title').exit().transition().duration(1000).remove();
+
+        }
+
+        var x = filterData();
+        draw(x);
         $('select').change(function () {
             var selType = $(this).attr('name');
             var option = $(this).find('option:selected').text();
